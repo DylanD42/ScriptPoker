@@ -157,6 +157,15 @@ while i <= 10 and i <= count of scores {
   display hs_name & ": " & hs_score
   put i + 1 into i
 } 
+put "highscores.txt" into file
+open file for write
 
+put 1 into i
+while i <= 10 and i <= count of scores {
+  put entry i of scores into hs_name, hs_score
+  write hs_name, hs_score to file
+  put i + 1 into i
+} 
+close file
 display "\nThanks for playing, " & player_name & "!\n"
 
