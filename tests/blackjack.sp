@@ -6,13 +6,14 @@ define dealer as hand
 
 //define discard as pile
 
-define choice as string
+
 define playing as boolean
 define roundover as boolean
 define score as integer
 define bet as integer
 define dealer_draw_count as integer
 define highscores as scoreboard
+
 
 function hand_total(h as hand) returns integer {
   return total of h threshold 21
@@ -27,6 +28,23 @@ function is_blackjack(h as hand) returns boolean {
 function is_busted(h as hand) returns boolean {
   return hand_total(h) > 21
   // This function checks if a hand has busted (total value exceeds 21).
+}
+
+function continue_game() returns boolean {
+  define choice as string
+  display ""
+  prompt "Would you like to play a round of blackjack? (Y/N)" into choice
+  examine {
+    case choice = "N" OR choice = "n" OR choice = "no" OR choice = "No" OR choice = "NO" {
+      return false
+    }
+    case choice = "Y" OR choice = "y" OR choice = "Yes" OR choice = "yes" {
+      return true
+    }
+    otherwise {
+      display "Invalid choice. Please enter Y or N." & choice
+    }
+  }
 }
 
 procedure show_table() {
@@ -65,16 +83,76 @@ procedure reset_deck(){
     }
 }
 
-//testing stuff
-
-define i as integer
-
-put 1 into i
-while i <= 3 {
-  shuffle d
-  deal 1 to player
-  put i + 1 into i
-  display "Player hand: " & show player & " Total: " & hand_total(player) & " Blackjack: " & is_blackjack(player) & " Busted: " & is_busted(player)
+procedure dealer_turn(){
+  while hand_total(dealer) < 17 {
+    deal to dealer
+  }
 }
+
+procedure end_round(){
+  define player_total as integer
+  define dealer_total as integer
+
+  put hand_total(player) into player_total
+  put hand_total(dealer) into dealer_total
+  examine{
+    case is_busted(player) {
+      display "You busted! Dealer wins."
+    }
+    case is_busted(dealer) {
+      display "Dealer busted! You win!"
+    }
+    case player_total > dealer_total {
+      display "You win with " & player_total & " against the dealer's " & dealer_total & "!"
+    }
+    case dealer_total > player_total {
+      display "Dealer wins with " & dealer_total & " against your " & player_total & "."
+    }
+    otherwise {
+      display "It's a push with both you and the dealer at " & player_total & "."
+    }
+  }
+}
+
+procedure player_turn(){
+  define done as boolean
+  define choice as string
+  put false into done
+
+  while NOT done {
+    prompt "Do you want to Hit (H) or Stand (S)?" into choice
+      examine{
+        case is_busted(player) {
+          display "You busted! Dealer wins."
+          put true into done
+        }
+        case choice = "H" OR choice = "h" OR choice = "Hit" OR choice = "hit" {
+          deal to player
+          show_table()
+        }
+        case choice = "S" OR choice = "s" OR choice = "Stand" OR choice = "stand" {
+          put true into done
+        }
+        otherwise {
+          display "Invalid choice. Please enter H or S." & choice
+      }
+    }
+  }
+}
+
+
+//main gameplay loop
+put true into playing
+display "Welcome to Blackjack! Please enter your name:"
+while playing {
+  clear_table()
+  reset_deck()
+  init_deal()
+  player_turn()
+  dealer_turn()
+  end_round()
+  put continue_game() into playing
+}
+
 
 
