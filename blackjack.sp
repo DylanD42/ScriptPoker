@@ -87,12 +87,9 @@ procedure clear_table(){
 }
 
 procedure reset_deck(){
-    if count of d < 3 {
         move all from discard to d
         shuffle d
         recover d
-        
-    }
 }
 
 procedure dealer_turn(){
@@ -112,8 +109,8 @@ procedure end_round(){
   put hand_total(dealer) into dealer_total
   examine{
     case is_blackjack(player) AND NOT is_blackjack(dealer){
-      display "Blackjack! You win! +20 points"
-      change_points(20)
+      display "Blackjack! You win! +15 points"
+      change_points(15)
     }
     case is_blackjack(dealer) AND NOT is_blackjack(player){
       display "Dealer has blackjack! Dealer wins. -10 points"
@@ -127,12 +124,12 @@ procedure end_round(){
       change_points(-10)
     }
     case is_busted(dealer) {
-      display "Dealer busted! You win! +15 points"
-      change_points(15)
+      display "Dealer busted! You win! +10 points"
+      change_points(10)
     }
     case player_total > dealer_total {
-      display "You win with " & player_total & " against the dealer's " & dealer_total & "! +15 points"
-      change_points(15)
+      display "You win with " & player_total & " against the dealer's " & dealer_total & "! +10 points"
+      change_points(10)
     }
     case dealer_total > player_total {
       display "Dealer wins with " & dealer_total & " against your " & player_total & ". -10 points"
@@ -191,39 +188,71 @@ while playing {
   put continue_game() into playing
 }
 
-define file as csv delimiter "|"
-define scores as scoreboard
-define hs_name as string 
-define hs_score as integer
-put "highscores.txt" into file
-open file for read
+// Scoreboard
+define high_scores as scoreboard
+define scores_file as csv
+put "highscores.csv" into scores_file
 
-while not end of file {
-  read hs_name, hs_score from file
-  put hs_name, hs_score into scores
-}
-close file
-
-put name, score into scores
-
+// Scoreboard TMP variables
 define i as integer
+define player_placed as boolean
+define name_tmp as string
+define score_tmp as integer
+
+// Read in high scores file contents
+open scores_file for read
+iterate i from 1 to 10 {
+
+    if end of scores_file{
+        put "", 0 into high_scores
+    } else{
+        read name_tmp, score_tmp from scores_file
+        put name_tmp, score_tmp into high_scores
+    }
+}
+close scores_file
+
+// Copy the high scores board to include the user, if they made the board
+define new_high_scores as scoreboard
 put 1 into i
-display "\n<HIGH SCORES>"
-while i <= 10 and i <= count of scores {
-  put entry i of scores into hs_name, hs_score
-  display hs_name & ": " & hs_score
-  put i + 1 into i
-} 
-put "highscores.txt" into file
-open file for write
+put FALSE into player_placed
+while i < 11 {
 
-put 1 into i
-while i <= 10 and i <= count of scores {
-  put entry i of scores into hs_name, hs_score
-  write hs_name, hs_score to file
-  put i + 1 into i
-} 
-close file
-display "\nThanks for playing, " & name & "!\n"
+    put entry i of high_scores into name_tmp, score_tmp
 
+    // Player made leaderboard
+    if score > score_tmp AND NOT player_placed {
+        display "-------------------------------------------------"
+        display "Congrats! You've made the leaderboard!"
+        display "Your final cash was $" & score
+        prompt "(Press ENTER to continue)" into name_tmp
+        display "-------------------------------------------------"
+        put name, score into new_high_scores
+        put TRUE into player_placed
+    } else {
+        put name_tmp, score_tmp into new_high_scores
+        put i + 1 into i
+    }
+}
 
+// Print out and save the leaderboard to file
+open scores_file for write
+display "-------------------------------------------------"
+display "                   Leaderboard                   "
+display ""
+iterate i from 1 to 10 {
+
+  put entry i of new_high_scores into name_tmp, score_tmp
+  write name_tmp, score_tmp to scores_file
+
+  if score = 0 {
+      display "#" & i & ": "
+  } else {
+      display "#" & i & ": " & name_tmp
+      display "    Score: " & score_tmp
+  }
+}
+display "-------------------------------------------------"
+close scores_file
+display "Final Cash: $" & score
+display "Thanks for Playing!"
