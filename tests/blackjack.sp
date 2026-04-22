@@ -8,7 +8,7 @@ define bet as integer
 define dealer_draw_count as integer
 define highscores as scoreboard
 define name as string
-define dealer_hand_size as integer
+define dealer_revealed as boolean
 
 put 100 into score //starting score for player, can be used for betting and tracking wins/losses
 put 10 into bet
@@ -57,7 +57,7 @@ procedure show_table() {
 //what gets shown each round
   display ""
   display "<DEALER>"
-  if dealer_hand_size > 2 {
+  if dealer_revealed {
     display show dealer
   } else {
     display show dealer revealing 1 
@@ -72,6 +72,7 @@ procedure show_table() {
 
 // may end up making this be a live thing that updates as the player hits, but for now just a function to show the current hand and total
 procedure init_deal() {
+    put false into dealer_revealed
     deal 2 to player
     deal 2 to dealer
 }
@@ -95,11 +96,11 @@ procedure reset_deck(){
 }
 
 procedure dealer_turn(){
-  put 2 into dealer_hand_size
+  put true into dealer_revealed
+  show_table()
   while hand_total(dealer) < 17 {
-    put (dealer_hand_size + 1) into dealer_hand_size
-    show_table()
     deal to dealer
+    show_table()
   }
 }
 
@@ -110,9 +111,16 @@ procedure end_round(){
   put hand_total(player) into player_total
   put hand_total(dealer) into dealer_total
   examine{
-    case is_blackjack(player){
+    case is_blackjack(player) AND NOT is_blackjack(dealer){
       display "Blackjack! You win! +20 points"
       change_points(20)
+    }
+    case is_blackjack(dealer) AND NOT is_blackjack(player){
+      display "Dealer has blackjack! Dealer wins. -10 points"
+      change_points(-10)
+    }
+    case is_blackjack(player) AND is_blackjack(dealer){
+      display "Both have blackjack! It's a push. No points awarded."
     }
     case is_busted(player) {
       display "You busted! Dealer wins. -10 points"
@@ -142,6 +150,9 @@ procedure player_turn(){
   define choice as string
   put false into done
   show_table()
+  if is_blackjack(player) {
+    put true into done
+  }
   while NOT done {
     prompt "Do you want to Hit (H) or Stand (S)?" into choice
       examine{
